@@ -52,3 +52,5 @@ xgrid,ygrid = np.meshgrid(x,y)
 xpol, ypol, Vtan, Vrad = polar_disk(xgrid,ygrid,np.array([10000]),np.array([10000]),0,100,u_total[0],v_total[0])
 # plot example
 plt.contourf(xpol,ypol,Vtan)
+
+
