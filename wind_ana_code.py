@@ -23,7 +23,7 @@ def pts_to_grid(pts_flat,dist,grid):
 
 day = '20130519'
 tilt_time = day + '231035'
-radar = '/Users/dbetten/lwei/Dan/2016-03-23/KTLX_%s' %day
+radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KTLX_%s' %day
 #for dirf in sorted(glob.glob(radar+'/'+day+'*')):
 #    print dirf
 
@@ -66,14 +66,45 @@ xgrid,ygrid = np.meshgrid(x,y)
 x_center = 10000.0
 y_center = 10000.0
 radial_spacing = 50 # meters
-azimuthal_spacing = 6 # meters
+azimuthal_spacing = 6 # degress
 radius = np.arange(0,5001,radial_spacing)
 azimuth = np.arange(0,361,azimuthal_spacing)
-Vtan_total = np.zeros((numt,radius.shape[0],azimuth.shape[0]))
+Vtan_total = np.zeros((numt,radius.shape[0],azimuth.shape[0])) #3D tangential velocity field (tilt, radius, az), we need to average in azimuth. => make 3D array into 2D array. az avg will then only vary in tilt and radius
 for i in range(numt):
     xpol, ypol, Vtan, Vrad = polar_disk(x,y,x_center,y_center,radial_spacing,azimuthal_spacing,u_total[i],v_total[i])
     Vtan_total[i] = Vtan
 # Max tangential velocity with height
 Vtan_max = Vtan_total.max(axis=1).max(axis=1)
+
+#Tangential Velocity
+Vtan_2D = Vtan_total.mean(axis = 2)
+
+#Circulation
+az_rad = np.deg2rad(azimuthal_spacing)
+C_2D = np.trapz(Vtan_total, axis = 2, dx = az_rad)*radius
+###PLOTTING###
+
+#Tangential Velocity plots
+plt.figure(1, figsize = (12, 8))
+vtan = plt.contourf(Vtan_2D)
+plt.title("Tangential Velocity")
+plt.xlabel("Radius")
+plt.ylabel("Tilt")
+plt.colorbar(vtan)
+plt.show()
+plt.close()
+
+#Circulation plots
+plt.figure(2, figsize = (12, 8))
+circ = plt.contourf(C_2D)
+plt.title("Circulation")
+plt.xlabel("Radius")
+plt.ylabel("Tilt")
+plt.colorbar(circ)
+plt.show()
+plt.close()
+
 # plot example
-plt.contourf(xpol,ypol,Vtan_total[5])
+'''plt.contourf(xpol,ypol,Vtan_total[5])
+plt.show()
+plt.close()'''
