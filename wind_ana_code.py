@@ -23,7 +23,7 @@ def pts_to_grid(pts_flat,dist,grid):
 
 day = '20130519'
 tilt_time = day + '231035'
-radar = '/Users/dbetten/lwei/Dan/2016-03-23/KTLX_%s' %day
+radar = '/Users/Rachel/Documents/GitHub/Capstone/NSSLResults/KTLX_%s' %day
 #for dirf in sorted(glob.glob(radar+'/'+day+'*')):
 #    print dirf
 
@@ -66,14 +66,40 @@ xgrid,ygrid = np.meshgrid(x,y)
 x_center = 10000.0
 y_center = 10000.0
 radial_spacing = 50 # meters
-azimuthal_spacing = 6 # meters
+azimuthal_spacing = 6 # degrees - chose random azimuthal spacing; apparently doesn't matter
 radius = np.arange(0,5001,radial_spacing)
 azimuth = np.arange(0,361,azimuthal_spacing)
-Vtan_total = np.zeros((numt,radius.shape[0],azimuth.shape[0]))
+Vtan_total = np.zeros((numt,radius.shape[0],azimuth.shape[0])) #3D tangential velocity field... it has tilt, radius and azimuth
 for i in range(numt):
     xpol, ypol, Vtan, Vrad = polar_disk(x,y,x_center,y_center,radial_spacing,azimuthal_spacing,u_total[i],v_total[i])
     Vtan_total[i] = Vtan
 # Max tangential velocity with height
 Vtan_max = Vtan_total.max(axis=1).max(axis=1)
 # plot example
-plt.contourf(xpol,ypol,Vtan_total[5])
+#plt.contourf(xpol,ypol,Vtan_total[5]) #Showing tangential velocity relative to the center of the grid which you assume is the center of the vortex
+#plt.show()
+#plt.close()
+
+#Step 1: Make plot of azimuthally averaged tangential velocity with height
+#Bottom: radius
+#y-axis is height
+#Fill is the azimuthally averaged tangential velocity
+#Vtan_total will only vary in tilt and radius
+Vtan2D = Vtan_total.mean(axis=2)
+plt.contourf(Vtan2D)
+plt.show()
+
+#or 
+#Bottom: time
+#y-axis is height
+#Fill is circulation
+
+
+# Calculate circulation
+#trapz is a trapezoidal integrating function in python
+Circ2D = nump.trapz(Vtan_total, axis=2, arclength =  #axis=2 because that's the dimension we're integrating over
+
+radius=radius[np.newaxis,:, np.newaxis]
+radius=radius*np.ones_likes(Vtan_total)
+
+#Rachel does circulation plots
