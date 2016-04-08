@@ -1,57 +1,79 @@
 import matplotlib.pylab as plt
 import numpy as np
+import scipy.ndimage as ndimage
+import glob
+def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
+    az_range = np.arange(0,361,az_spac)
+    rad_range = np.arange(0,5001,hspac)
+    rad_range_len = len(rad_range)
+    az_range_len = len(az_range)
+    az_range,rad_range = np.meshgrid(az_range,rad_range)
+    x_polar_test = (xi +(rad_range*np.sin(az_range*np.pi/180.0))[...,np.newaxis]).flatten()
+    y_polar_test = (yi +(rad_range*np.cos(az_range*np.pi/180.0))[...,np.newaxis]).flatten()
+    xspts = pts_to_grid(x_polar_test.flatten(),0.0,xgrid)
+    yspts = pts_to_grid(y_polar_test.flatten(),0.0,ygrid)
+    u_polar = np.reshape(ndimage.map_coordinates(up,[yspts,xspts],order=3),az_range.shape)
+    v_polar = np.reshape(ndimage.map_coordinates(vp,[yspts,xspts],order=3),az_range.shape)
+    vtan = -u_polar*np.cos(az_range*np.pi/180.0)+ v_polar*np.sin(az_range*np.pi/180.0)
+    vrad = u_polar*np.sin(az_range*np.pi/180.0)- v_polar*np.cos(az_range*np.pi/180.0)
+    return np.reshape(x_polar_test,az_range.shape),np.reshape(y_polar_test,az_range.shape),vtan,vrad
 
-#Interpolates U and V winds to polar coordinates and extracts the tangential velocity... I'm assuming it returns an array? I will need to talk to Dan about that
-def polar_disk(xgrid,ygrid,xi,yi,radmin,hspac,up,vp):
-	az_range = np.arange(0,361,9)
-	rad_range = np.arange(radmin,5001,hspac)
-	rad_range_len = len(rad_range)
-	az_range_len = len(az_range)
-	az_range,rad_range = np.meshgrid(az_range,rad_range)
-	x_polar_test = (xi[np.newaxis,np.newaxis] +(rad_range*np.sin(az_range*np.pi/180.0))[...,np.newaxis]).flatten()
-	y_polar_test = (yi[np.newaxis,np.newaxis] +(rad_range*np.cos(az_range*np.pi/180.0))[...,np.newaxis]).flatten()
-	xspts = pts_to_grid(x_polar_test.flatten(),0.0,xgrid) #Throwing error - not defined
-	yspts = pts_to_grid(y_polar_test.flatten(),0.0,ygrid) #Throwing error - not defined
-	u_polar = np.reshape(ndimage.map_coordinates(up,[yspts,xspts],order=odr),az_range.shape)
-	v_polar = np.reshape(ndimage.map_coordinates(vp,[yspts,xspts],order=odr),az_range.shape)
-	vtan = -u_polar*np.cos(az_range*np.pi/180.0)+ v_polar*np.sin(az_range*np.pi/180.0)
-	vrad = u_polar*np.sin(az_range*np.pi/180.0)- v_polar*np.cos(az_range*np.pi/180.0)
-	return np.reshape(x_polar_test,az_range.shape),np.reshape(y_polar_test,az_range.shape),vtan,vrad
+def pts_to_grid(pts_flat,dist,grid):
+                return np.interp((pts_flat-dist),grid,range(0,len(grid)))
 
-file = open('/Users/Rachel/Documents/GitHub/Capstone/20130519_ana/20130519232322/qd_20130519232322.txt')
+day = '20130519'
+tilt_time = day + '231035'
+radar = '/Users/dbetten/lwei/Dan/2016-03-23/KTLX_%s' %day
+#for dirf in sorted(glob.glob(radar+'/'+day+'*')):
+#    print dirf
+
+file = open('%s/%s/qd_%s.txt' % (radar,tilt_time,tilt_time))
 data = []
 dd=[]
 for line in file:data.append(line)
-for i in range(14):dd.append(data[i].split())
-vv_total = np.float32(np.array(dd).reshape((14,81,81)))
+# number of tilts
+numt = len(data)
 
-file = open('/Users/Rachel/Documents/GitHub/Capstone/20130519_ana/20130519232322/dd_20130519232322.txt')
+for i in range(numt):dd.append(data[i].split())
+vv_total = np.float32(np.array(dd).reshape((numt,81,81)))
+
+file = open('%s/%s/dd_%s.txt' % (radar,tilt_time,tilt_time))
 data = []
 dd=[]
 for line in file:data.append(line)
-for i in range(14):dd.append(data[i].split())
-div_total = np.float32(np.array(dd).reshape((14,81,81)))
+for i in range(numt):dd.append(data[i].split())
+div_total = np.float32(np.array(dd).reshape((numt,81,81)))
 
-file = open('/Users/Rachel/Documents/GitHub/Capstone/20130519_ana/20130519232322/ud_20130519232322.txt')
+file = open('%s/%s/ud_%s.txt' % (radar,tilt_time,tilt_time))
 data = []
 dd=[]
 for line in file:data.append(line)
-for i in range(14):dd.append(data[i].split())
-u_total = np.float32(np.array(dd).reshape((14,81,81)))
+for i in range(numt):dd.append(data[i].split())
+u_total = np.float32(np.array(dd).reshape((numt,81,81)))
 
-file = open('/Users/Rachel/Documents/GitHub/Capstone/20130519_ana/20130519232322/vd_20130519232322.txt')
+file = open('%s/%s/vd_%s.txt' % (radar,tilt_time,tilt_time))
 data = []
 dd=[]
 for line in file:data.append(line)
-for i in range(14):dd.append(data[i].split())
-v_total = np.float32(np.array(dd).reshape((14,81,81)))
+for i in range(numt):dd.append(data[i].split())
+v_total = np.float32(np.array(dd).reshape((numt,81,81)))
+
+wind_magnitude = np.hypot(u_total,v_total)
 
 x = np.arange(0,250*81,250)
 y = np.arange(0,250*81,250)
 xgrid,ygrid = np.meshgrid(x,y)
-
-xpol, ypol, Vtan, Vrad = polar_disk(xgrid,ygrid,np.array([10000]),np.array([10000]),0,100,u_total[0],v_total[0])
+x_center = 10000.0
+y_center = 10000.0
+radial_spacing = 50 # meters
+azimuthal_spacing = 6 # meters
+radius = np.arange(0,5001,radial_spacing)
+azimuth = np.arange(0,361,azimuthal_spacing)
+Vtan_total = np.zeros((numt,radius.shape[0],azimuth.shape[0]))
+for i in range(numt):
+    xpol, ypol, Vtan, Vrad = polar_disk(x,y,x_center,y_center,radial_spacing,azimuthal_spacing,u_total[i],v_total[i])
+    Vtan_total[i] = Vtan
+# Max tangential velocity with height
+Vtan_max = Vtan_total.max(axis=1).max(axis=1)
 # plot example
-plt.contourf(xpol,ypol,Vtan)
-
-
+plt.contourf(xpol,ypol,Vtan_total[5])
