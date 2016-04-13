@@ -2,6 +2,9 @@ import matplotlib.pylab as plt
 import numpy as np
 import scipy.ndimage as ndimage
 import glob
+
+########################### Functions ###################################
+
 def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
     az_range = np.arange(0,361,az_spac)
     rad_range = np.arange(0,5001,hspac)
@@ -20,17 +23,48 @@ def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
 
 def pts_to_grid(pts_flat,dist,grid):
                 return np.interp((pts_flat-dist),grid,range(0,len(grid)))
+
+r = 6372.797 #Radius of the earth, global variable
+# Current working function
+def latlondis(lat0,lon0,lat2,lon2):
+    lat1 = np.pi*lat0/180.0
+    lat3 = np.pi*lat2/180.0
+    lon1 = np.pi*lon0/180.0
+    lon3 = np.pi*lon2/180.0
+    dlat = lat1-lat3
+    dlon = lon1-lon3
+    if (dlon!=0): #accounts for the direction in x and y in the sign of the distance
+        dirx = dlon/abs(dlon)
+    else: 
+        dirx=1
+    if (dlat!=0):
+        diry = dlat/abs(dlat)
+    else:
+        diry=1
+    
+    dis_x = np.cos(lat3) * np.cos(lat3)*np.sin(dlon/2.0)*np.sin(dlon/2.0)
+    dis_x_km = 2.0*np.arctan2(np.sqrt(dis_x),np.sqrt(1-dis_x))*r*dirx
+    dis_y =np.sin(dlat/2.0)*np.sin(dlat/2.0)
+    dis_y_km = 2.0*np.arctan2(np.sqrt(dis_y),np.sqrt(1-dis_y))*r*diry
+    return dis_x_km,dis_y_km
+
+##########################################################################
+
+
 day = '20130519'
 #radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KTLX_%s' %day
 radar = '/Users/Rachel/Documents/GitHub/Capstone/NSSLResults/KTLX_%s' %day
-row = 1
-col = 1
-font = {'family' : 'normal', 
+axis_title_font = {'family' : 'normal',
 	'size' : 12 }
-fig, test = plt.subplots(2, 5)
-fig.suptitle("Circulation of May 19, 2013 Mesocyclone")
-fig.tight_layout(pad=2.0, h_pad=1.2, w_pad=0.1) # Add spacing between subplots to minimize overcrowding
-test = test.ravel()
+axis_font = {'family' : 'normal',
+	'weight' : 'bold',  
+	'size' : 14}
+fig, sub = plt.subplots(2, 5)
+fig.suptitle("Circulation of May 19, 2013 Mesocyclone", fontsize=16) # Figure label
+fig.text(0.5, 0.04, 'Radius (m)', ha = 'center', fontdict = axis_font) # Horizontal axis label
+fig.text(0.04, 0.5, 'Tilt', va = 'center', rotation = 'vertical', fontdict = axis_font) # Vertical axis label
+fig.tight_layout(pad=2.5, h_pad=1.2, w_pad=.001) # Add spacing between subplots to minimize overcrowding
+sub = sub.ravel()
 index = 0 # Keep track of index of subplot
 for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     tilt_time = day + dirf[-6:] #Set new tilt_time
@@ -103,13 +137,10 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
 
     ##### Circulation plots #####
     #Height/Tilt vs Radius
-    #plt.figure(2, figsize = (12, 8))
-    #plt.figure(1)
-    #plt.subplot(10, col, row)
-    test[index].contourf(C_2D)
-    test[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", font)
-    test[index].set_xlabel("Radius (m)")
-    test[index].set_ylabel("Tilt")
+    sub[index].contourf(C_2D)
+    sub[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
+    #sub[index].set_xlabel("Radius (m)")
+    #sub[index].set_ylabel("Tilt")
  #  test.colorbar(circ)
     index = index + 1
 plt.show()
