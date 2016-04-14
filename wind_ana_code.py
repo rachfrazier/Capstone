@@ -26,30 +26,42 @@ day = '20130519'
 radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KTLX_%s' %day
 time = []
 vtan2d = []
+c2d = []
 tilt = np.arange(0,14)
+fig, ax = plt.subplots(2, 5)
+fig.suptitle("Tangential Velocity on %s" %day)
+fig.tight_layout(pad = 2.0, h_pad = 1.2, w_pad = 0.1) #spacing between subplots
+fig.text(0.5, 0.04, 'Radius (m)', ha='center')
+fig.text(0.04, 0.5, 'Tilt', va='center', rotation='vertical')
+ax = ax.ravel()
+index = 0
 for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     tilt_time = day + dirf[-6::]
     vtime = dirf[-6::]
     times = time.append(np.float32(vtime))
+    rad = dirf.split('/')[5]
     print dirf
-
+    
     file = open('%s/%s/qd_%s.txt' % (radar,tilt_time,tilt_time))
     data = []
     dd=[]
     for line in file:data.append(line)
     # number of tilts
     numt = len(data)
-
+    
+    #vertical vorticity
     for i in range(numt):dd.append(data[i].split())
     vv_total = np.float32(np.array(dd).reshape((numt,81,81)))
-
+    
+    #divergence
     file = open('%s/%s/dd_%s.txt' % (radar,tilt_time,tilt_time))
     data = []
     dd=[]
     for line in file:data.append(line)
     for i in range(numt):dd.append(data[i].split())
     div_total = np.float32(np.array(dd).reshape((numt,81,81)))
-
+    
+    #u wind
     file = open('%s/%s/ud_%s.txt' % (radar,tilt_time,tilt_time))
     data = []
     dd=[]
@@ -57,6 +69,7 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     for i in range(numt):dd.append(data[i].split())
     u_total = np.float32(np.array(dd).reshape((numt,81,81)))
 
+    #v wind
     file = open('%s/%s/vd_%s.txt' % (radar,tilt_time,tilt_time))
     data = []
     dd=[]
@@ -89,36 +102,48 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     #Circulation
     az_rad = np.deg2rad(azimuthal_spacing)
     C_2D = np.trapz(Vtan_total, axis = 2, dx = az_rad)*radius
+    c2 = c2d.append(C_2D)
 
     ###PLOTTING###
 
     #Tangential Velocity plots
     plt.figure(1, figsize = (12, 8))
-    vtan = plt.contourf(Vtan_2D)
-    plt.title("Tangential Velocity at %s UTC" %vtime)
-    plt.xlabel("Radius (m)")
-    plt.ylabel("Tilt")
-    plt.colorbar(vtan)
-    plt.show()
-#    plt.savefig()
-    plt.close()
+    vtan = plt.contourf(Vtan_2D, extend = "both")
+    ax[index].contourf(Vtan_2D, extend = "both")
+    ax[index].set_title(vtime)
+    index = index + 1
+fig.subplots_adjust(right=0.8)
+cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+fig.colorbar(vtan, cax = cbar_ax)
+fig.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/vtan_%s'% rad, dpi = 300)
+plt.show()
+plt.close()
 
 time = np.asarray(time)
 vtan2d = np.asarray(vtan2d)
+c2d = np.asarray(c2d)
 el = np.array([0.48, 0.88, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
 #Tangential Velocity with tilt and time and radius and things.
 for n in range(0, el.shape[0]):
     height_level = el[n]
     lev = n
     vt2d = vtan2d[:,lev,:].T
-    plt.contourf(time, radius, vt2d)
+    plt.contourf(time, radius, vt2d, extend = "both")
     plt.title("Tangential Velocity at %s deg elevation" %(el[n]))
     plt.xlabel("Volume Time UTC")
     plt.ylabel("Radius (m)")
+    plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/vtantime_%s_%d'%(rad, el[n]), dpi = 300)
     plt.show()
-    #plt.savefig()
     plt.close()
 
+c2 = c2d[:,:,20].T
+plt.contourf(time, tilt, c2)
+plt.title("Circulation with time and height")
+plt.xlabel("Volume Time UTC")
+plt.ylabel("Tilt")
+plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/circwithheight_%s'% rad, dpi = 300)
+plt.show()
+plt.close()
 
 '''#Circulation plots
 plt.figure(2, figsize = (12, 8))
