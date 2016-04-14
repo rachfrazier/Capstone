@@ -2,6 +2,9 @@ import matplotlib.pylab as plt
 import numpy as np
 import scipy.ndimage as ndimage
 import glob
+import csv
+########################### Functions ###################################
+
 def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
     az_range = np.arange(0,361,az_spac)
     rad_range = np.arange(0,5001,hspac)
@@ -20,6 +23,65 @@ def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
 
 def pts_to_grid(pts_flat,dist,grid):
                 return np.interp((pts_flat-dist),grid,range(0,len(grid)))
+
+r = 6372.797 #Radius of the earth, global variable
+# Current working function
+def latlondis(lat0,lon0,lat2,lon2):
+    lat1 = np.pi*lat0/180.0
+    lat3 = np.pi*lat2/180.0
+    lon1 = np.pi*lon0/180.0
+    lon3 = np.pi*lon2/180.0
+    dlat = lat1-lat3
+    dlon = lon1-lon3
+    if (dlon!=0): #accounts for the direction in x and y in the sign of the distance
+        dirx = dlon/abs(dlon)
+    else: 
+        dirx=1
+    if (dlat!=0):
+        diry = dlat/abs(dlat)
+    else:
+        diry=1
+    
+    dis_x = np.cos(lat3) * np.cos(lat3)*np.sin(dlon/2.0)*np.sin(dlon/2.0)
+    dis_x_km = 2.0*np.arctan2(np.sqrt(dis_x),np.sqrt(1-dis_x))*r*dirx
+    dis_y =np.sin(dlat/2.0)*np.sin(dlat/2.0)
+    dis_y_km = 2.0*np.arctan2(np.sqrt(dis_y),np.sqrt(1-dis_y))*r*diry
+    return dis_x_km,dis_y_km
+
+##########################################################################
+
+############ Lat/ Lons needed to convert tilt to height ##################
+
+master = np.array([])
+with open('/Users/Rachel/OneDrive/Documents/Meteorology/Capstone/Scripts/20130519 _backup.csv') as csvfile:
+	reader = csv.DictReader(csvfile)
+	for row in reader:
+		master = np.append(master, row)
+
+lat = np.array([])
+lon = np.array([])
+for i in range(len(master)):
+	lat = np.append(lat, float(master[i][' Lat']))
+	lon = np.append(lon, float(master[i][' Lon']))
+radar_lat = 35.333
+radar_lon = -97.278
+
+dist = np.array([])
+height = []
+tilt = np.deg2rad([0.48, 0.85, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
+for i in range(len(lat)):
+	x, y = latlondis(lat[i], lon[i], radar_lat, radar_lon)
+	dist = np.append(dist, np.hypot(x, y))
+j = 0
+temp = []
+for i in range(0, dist.shape[0]):
+	temp.append((np.sin(tilt[j]) * dist[i]) + (dist[i]*dist[i]/(2*r)))
+	j = j + 1
+	if (i+1) % 14 == 0: # Reloop over tilt array after doing 19.51
+		height.append(temp)
+		j = 0
+		temp=[]
+##########################################################################
 
 day = '20130519'
 #tilt_time = day + '231035'
