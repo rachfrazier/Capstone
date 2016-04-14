@@ -2,7 +2,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import scipy.ndimage as ndimage
 import glob
-
+import csv
 ########################### Functions ###################################
 
 def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
@@ -50,6 +50,38 @@ def latlondis(lat0,lon0,lat2,lon2):
 
 ##########################################################################
 
+############ Lat/ Lons needed to convert tilt to height ##################
+
+master = np.array([])
+with open('/Users/Rachel/OneDrive/Documents/Meteorology/Capstone/Scripts/20130519 _backup.csv') as csvfile:
+	reader = csv.DictReader(csvfile)
+	for row in reader:
+		master = np.append(master, row)
+
+lat = np.array([])
+lon = np.array([])
+for i in range(len(master)):
+	lat = np.append(lat, float(master[i][' Lat']))
+	lon = np.append(lon, float(master[i][' Lon']))
+radar_lat = 35.333
+radar_lon = -97.278
+
+dist = np.array([])
+height = []
+tilt = np.deg2rad([0.48, 0.85, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
+for i in range(len(lat)):
+	x, y = latlondis(lat[i], lon[i], radar_lat, radar_lon)
+	dist = np.append(dist, np.hypot(x, y))
+j = 0
+temp = []
+for i in range(0, dist.shape[0]):
+	temp.append((np.sin(tilt[j]) * dist[i]) + (dist[i]*dist[i]/(2*r)))
+	j = j + 1
+	if (i+1) % 14 == 0: # Reloop over tilt array after doing 19.51
+		height.append(temp)
+		j = 0
+		temp=[]
+##########################################################################
 
 day = '20130519'
 #radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KTLX_%s' %day
@@ -61,11 +93,12 @@ axis_font = {'family' : 'normal',
 	'size' : 14}
 fig, sub = plt.subplots(2, 5)
 fig.suptitle("Circulation of May 19, 2013 Mesocyclone", fontsize=16) # Figure label
-fig.text(0.5, 0.04, 'Radius (m)', ha = 'center', fontdict = axis_font) # Horizontal axis label
-fig.text(0.04, 0.5, 'Tilt', va = 'center', rotation = 'vertical', fontdict = axis_font) # Vertical axis label
+fig.text(0.5, 0.04, 'Radius (km)', ha = 'center', fontdict = axis_font) # Horizontal axis label
+fig.text(0.04, 0.5, 'Height (km)', va = 'center', rotation = 'vertical', fontdict = axis_font) # Vertical axis label
 fig.tight_layout(pad=2.5, h_pad=1.2, w_pad=.001) # Add spacing between subplots to minimize overcrowding
 sub = sub.ravel()
 index = 0 # Keep track of index of subplot
+height_index = 0
 for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     tilt_time = day + dirf[-6:] #Set new tilt_time
     file = open('%s/%s/qd_%s.txt' % (radar,tilt_time,tilt_time))
@@ -137,15 +170,22 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
 
     ##### Circulation plots #####
     #Height/Tilt vs Radius
-    sub[index].contourf(C_2D)
+    npheight = np.asarray(height[height_index])
+    r, hght = np.meshgrid(radius/1000., npheight)
+    circ_cb = plt.contourf(r, hght, C_2D, extend = "both")
+    sub[index].contourf(r, hght, C_2D, extend = "both")
     sub[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
-    #sub[index].set_xlabel("Radius (m)")
-    #sub[index].set_ylabel("Tilt")
- #  test.colorbar(circ)
     index = index + 1
+    height_index = height_index + 1
+#Add color bars
+fig.subplots_adjust(right = 0.8)
+cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7]) 
+fig.colorbar(circ_cb, cax = cbar_ax)
+
 plt.show()
 fig.savefig("/Users/Rachel/Documents/GitHub/Capstone/Plots/20130519/tiltVheight.png")
 plt.close()
+
 
 ########################################## Notes from earlier ######################################
 '''
