@@ -53,7 +53,7 @@ def latlondis(lat0,lon0,lat2,lon2):
 ############ Lat/ Lons needed to convert tilt to height ##################
 
 master = np.array([])
-with open('/Users/Rachel/OneDrive/Documents/Meteorology/Capstone/Scripts/20130519 _backup.csv') as csvfile:
+with open('/Users/Rachel/OneDrive/Documents/Meteorology/Capstone/Scripts/20110309_2.csv') as csvfile:
 	reader = csv.DictReader(csvfile)
 	for row in reader:
 		master = np.append(master, row)
@@ -63,12 +63,29 @@ lon = np.array([])
 for i in range(len(master)):
 	lat = np.append(lat, float(master[i][' Lat']))
 	lon = np.append(lon, float(master[i][' Lon']))
-radar_lat = 35.333
-radar_lon = -97.278
+# KTLX
+#radar_lat = 35.3333873
+#radar_lon = -97.2778255
+
+# KFDR
+#radar_lat = 34.3620014
+#radar_lon = -98.9766884
+
+# KDDC
+#radar_lat = 37.7608043
+#radar_lon = -99.9688053
+
+# KJKL
+#radar_lat = 37.590762
+#radar_lon = -83.313039
+
+#KLIX
+radar_lat = 30.3367133
+radar_lon = -89.8256618
 
 dist = np.array([])
 height = []
-tilt = np.deg2rad([0.48, 0.85, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
+tilt = np.deg2rad([0.48, 0.85, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51]) #0.48
 for i in range(len(lat)):
 	x, y = latlondis(lat[i], lon[i], radar_lat, radar_lon)
 	dist = np.append(dist, np.hypot(x, y))
@@ -83,16 +100,16 @@ for i in range(0, dist.shape[0]):
 		temp=[]
 ##########################################################################
 
-day = '20130519'
-#radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KTLX_%s' %day
-radar = '/Users/Rachel/Documents/GitHub/Capstone/NSSLResults/KTLX_%s' %day
+day = '20110309'
+#radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KDDC_%s' %day
+radar = '/Users/Rachel/Documents/GitHub/Capstone/NSSLResults/KLIX' 
 axis_title_font = {'family' : 'normal',
 	'size' : 12 }
 axis_font = {'family' : 'normal',
 	'weight' : 'bold',  
 	'size' : 14}
-fig, sub = plt.subplots(2, 5)
-fig.suptitle("Circulation of May 19, 2013 Mesocyclone", fontsize=16) # Figure label
+fig, sub = plt.subplots(2, 4)
+fig.suptitle("Circulation of March 9, 2011 Mesocyclone", fontsize=16, fontweight='bold') # Figure label
 fig.text(0.5, 0.04, 'Radius (km)', ha = 'center', fontdict = axis_font) # Horizontal axis label
 fig.text(0.04, 0.5, 'Height (km)', va = 'center', rotation = 'vertical', fontdict = axis_font) # Vertical axis label
 fig.tight_layout(pad=2.5, h_pad=1.2, w_pad=.001) # Add spacing between subplots to minimize overcrowding
@@ -168,12 +185,20 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     #plt.show()
     #plt.close()
 
+    #Volume 4 missing 0.48, 0.88
+
     ##### Circulation plots #####
     #Height/Tilt vs Radius
     npheight = np.asarray(height[height_index])
+    print(C_2D.shape)
+    if(C_2D.shape == (12, 101)):
+        npheight = np.delete(npheight, 0)
+        npheight = np.delete(npheight, 1) ################## KATE LYNNNNNNNNNNNNN Change this from 1 to 2 for KJKL
     r, hght = np.meshgrid(radius/1000., npheight)
-    circ_cb = plt.contourf(r, hght, C_2D, extend = "both")
+    circ_cb = sub[index].contourf(r, hght, C_2D, extend = "both")
+    #circ_cb = plt.contour(C_2D)
     sub[index].contourf(r, hght, C_2D, extend = "both")
+    #sub[index].contourf(C_2D)
     sub[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
     index = index + 1
     height_index = height_index + 1
@@ -181,37 +206,12 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
 fig.subplots_adjust(right = 0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7]) 
 fig.colorbar(circ_cb, cax = cbar_ax)
+#sub[-1, -1].axis('off') # Remove last plot since we have an odd number of volumes
+#fig.delaxes(sub[-1])
 
+#Show figure and save it
 plt.show()
-fig.savefig("/Users/Rachel/Documents/GitHub/Capstone/Plots/20130519/tiltVheight.png")
+fig.savefig("/Users/Rachel/Documents/GitHub/Capstone/Plots/20110309/20110309_Circ_HeightVRadius.png")
 plt.close()
 
 
-########################################## Notes from earlier ######################################
-'''
-
-#Step 1: Make plot of azimuthally averaged tangential velocity with height
-#Bottom: radius
-#y-axis is height
-#Fill is the azimuthally averaged tangential velocity
-#Vtan_total will only vary in tilt and radius
-#Vtan2D = Vtan_total.mean(axis=2)
-#plt.contourf(Vtan2D)
-#plt.show()
-
-#or 
-#Bottom: time
-#y-axis is height
-#Fill is circulation
-
-
-# Calculate circulation
-#trapz is a trapezoidal integrating function in python
-#Circ2D = nump.trapz(Vtan_total, axis=2, arclength =  #axis=2 because that's the dimension we're integrating over
-
-#radius=radius[np.newaxis,:, np.newaxis]
-#radius=radius*np.ones_likes(Vtan_total)
-
-#Rachel does circulation plots
-
-'''
