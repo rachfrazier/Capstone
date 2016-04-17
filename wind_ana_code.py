@@ -3,6 +3,9 @@ import numpy as np
 import scipy.ndimage as ndimage
 import glob
 import csv
+import ctables
+
+cmap_ref = ctables.Carbone42
 ########################### Functions ###################################
 
 def polar_disk(xgrid,ygrid,xi,yi,hspac,az_spac,up,vp):
@@ -51,9 +54,8 @@ def latlondis(lat0,lon0,lat2,lon2):
 ##########################################################################
 
 ############ Lat/ Lons needed to convert tilt to height ##################
-
 master = np.array([])
-with open('/Users/Rachel/OneDrive/Documents/Meteorology/Capstone/Scripts/20130519 _backup.csv') as csvfile:
+with open('/Users/klwalsh/Undergrad/Senior/Capstone/CSVs/20150506_2.csv') as csvfile:
 	reader = csv.DictReader(csvfile)
 	for row in reader:
 		master = np.append(master, row)
@@ -63,12 +65,12 @@ lon = np.array([])
 for i in range(len(master)):
 	lat = np.append(lat, float(master[i][' Lat']))
 	lon = np.append(lon, float(master[i][' Lon']))
-radar_lat = 35.333
-radar_lon = -97.278
+radar_lat = 35.3333873
+radar_lon = -97.2778255
 
 dist = np.array([])
 height = []
-tilt = np.deg2rad([0.48, 0.85, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
+tilt = np.deg2rad([0.85, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
 for i in range(len(lat)):
 	x, y = latlondis(lat[i], lon[i], radar_lat, radar_lon)
 	dist = np.append(dist, np.hypot(x, y))
@@ -77,26 +79,32 @@ temp = []
 for i in range(0, dist.shape[0]):
 	temp.append((np.sin(tilt[j]) * dist[i]) + (dist[i]*dist[i]/(2*r)))
 	j = j + 1
-	if (i+1) % 14 == 0: # Reloop over tilt array after doing 19.51
+	if (i+1) % 13 == 0: # Reloop over tilt array after doing 19.51
 		height.append(temp)
 		j = 0
 		temp=[]
 ##########################################################################
 
-day = '20130519'
+day = '20150506'
 #tilt_time = day + '231035'
 radar = '/Users/klwalsh/CapstoneGit/NSSLResults/KTLX_%s' %day
 time = []
 vtan2d = []
 c2d = []
 tilt = np.arange(0,14)
-fig, ax = plt.subplots(2, 5)
-fig.suptitle("Tangential Velocity on %s" %day)
+axis_title_font = {'family' : 'normal',
+    'size' : 12 }
+axis_font = {'family' : 'normal',
+    'weight' : 'bold',
+        'size' : 14}
+fig, ax = plt.subplots(2, 6)
+fig.suptitle("Tangential Velocity - May 5th, 2016", fontsize = 16)
+fig.text(0.5, 0.04, 'Radius (km)', ha='center', fontdict = axis_font)
+fig.text(0.04, 0.5, 'Height (km)', va='center', rotation='vertical', fontdict = axis_font)
 fig.tight_layout(pad = 2.0, h_pad = 1.2, w_pad = 0.1) #spacing between subplots
-fig.text(0.5, 0.04, 'Radius (m)', ha='center')
-fig.text(0.04, 0.5, 'Tilt', va='center', rotation='vertical')
 ax = ax.ravel()
 index = 0
+height_index = 0
 for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     tilt_time = day + dirf[-6::]
     vtime = dirf[-6::]
@@ -169,15 +177,19 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     ###PLOTTING###
 
     #Tangential Velocity plots
-    plt.figure(1, figsize = (12, 8))
-    vtan = plt.contourf(Vtan_2D, extend = "both")
-    ax[index].contourf(Vtan_2D, extend = "both")
-    ax[index].set_title(vtime)
+    plt.figure(1, figsize = (32, 12))
+    npheight = np.asarray(height[height_index])
+    r, hght = np.meshgrid(radius, npheight)
+    vtan = ax[index].contourf(r/1000., hght, Vtan_2D,  extend = "both")
+    ax[index].contourf(r/1000., hght, Vtan_2D, extend = "both")
+    ax[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
     index = index + 1
+    height_index = height_index + 1
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(vtan, cax = cbar_ax)
-fig.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/vtan_%s'% rad, dpi = 300)
+fig.delaxes(ax[-1])
+#fig.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/vtan_%s_2'% rad, dpi = 300)
 plt.show()
 plt.close()
 
@@ -186,28 +198,57 @@ vtan2d = np.asarray(vtan2d)
 c2d = np.asarray(c2d)
 el = np.array([0.48, 0.88, 1.32, 1.80, 2.42, 3.12, 4.00, 5.10, 6.42, 8.00, 10.02, 12.48, 15.60, 19.51])
 #Tangential Velocity with tilt and time and radius and things.
-for n in range(0, el.shape[0]):
-    height_level = el[n]
+for n in range(0, npheight.shape[0]):
+    height_level = npheight[n]
     lev = n
     vt2d = vtan2d[:,lev,:].T
     plt.contourf(time, radius, vt2d, extend = "both")
-    plt.title("Tangential Velocity at %s deg elevation" %(el[n]))
+    plt.title("Tangential Velocity at %s m" %(npheight[n]))
     plt.xlabel("Volume Time UTC")
     plt.ylabel("Radius (m)")
-    plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/vtantime_%s_%d'%(rad, el[n]), dpi = 300)
+    #plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/vtantime_%s_%d'%(rad, npheight[n]), dpi = 300)
     plt.show()
     plt.close()
 
-c2 = c2d[:,:,20].T
-plt.contourf(time, tilt, c2)
-plt.title("Circulation with time and height")
-plt.xlabel("Volume Time UTC")
-plt.ylabel("Tilt")
-plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/circwithheight_%s'% rad, dpi = 300)
-plt.show()
-plt.close()
+for n in range(0, radius.shape[0]):
+    rad_level = radius[n]
+    lev = n
+    c2 = c2d[:, :, lev]
+    t, h = np.meshgrid(time, npheight)
+    plt.contourf(t.T, h.T, c2)
+    plt.title("Circulation at Radius %s (m)" %(radius[n]))
+    plt.xlabel("Time of somekind")
+    plt.ylabel("Height (km)")
+#plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/circwithheight_%s'% rad, dpi = 300)
+    plt.show()
+    plt.close()
+    
+    ####Rachel's circulation plots, with respect to making the heights for the contours and using the hght variable to use as your z axis rather than by tilt.  We need to figure out igure out how to make these for time height respect as well######
+    #Tangential Velocity plots
+    #plt.figure(1, figsize = (12, 8))
+    #vtan = plt.contourf(Vtan_2D)
+    #plt.title("Tangential Velocity")
+    #plt.xlabel("Radius")
+    #plt.ylabel("Tilt")
+    #plt.colorbar(vtan)
+    #plt.show()
+    #plt.close()
 
-'''#Circulation plots
+'''    ##### Circulation plots #####
+    #Height/Tilt vs Radius
+    npheight = np.asarray(height[height_index])
+    r, hght = np.meshgrid(radius/1000., npheight)
+    circ_cb = plt.contourf(r, hght, C_2D, extend = "both")
+    sub[index].contourf(r, hght, C_2D, extend = "both")
+    sub[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
+    index = index + 1
+    height_index = height_index + 1
+#Add color bars
+fig.subplots_adjust(right = 0.8)
+cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7]) 
+fig.colorbar(circ_cb, cax = cbar_ax)
+
+#Circulation plots
 plt.figure(2, figsize = (12, 8))
 circ = plt.contourf(C_2D)
 plt.title("Circulation")
