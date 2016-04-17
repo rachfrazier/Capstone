@@ -237,9 +237,15 @@ for n in range(0, radius.shape[0]):
 '''    ##### Circulation plots #####
     #Height/Tilt vs Radius
     npheight = np.asarray(height[height_index])
+    print(C_2D.shape)
+    if(C_2D.shape == (12, 101)):
+        npheight = np.delete(npheight, 0)
+        npheight = np.delete(npheight, 1) ################## KATE LYNNNNNNNNNNNNN Change this from 1 to 2 for KJKL
     r, hght = np.meshgrid(radius/1000., npheight)
-    circ_cb = plt.contourf(r, hght, C_2D, extend = "both")
+    circ_cb = sub[index].contourf(r, hght, C_2D, extend = "both")
+    #circ_cb = plt.contour(C_2D)
     sub[index].contourf(r, hght, C_2D, extend = "both")
+    #sub[index].contourf(C_2D)
     sub[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
     index = index + 1
     height_index = height_index + 1
@@ -247,6 +253,8 @@ for n in range(0, radius.shape[0]):
 fig.subplots_adjust(right = 0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7]) 
 fig.colorbar(circ_cb, cax = cbar_ax)
+#sub[-1, -1].axis('off') # Remove last plot since we have an odd number of volumes
+#fig.delaxes(sub[-1])
 
 #Circulation plots
 plt.figure(2, figsize = (12, 8))
