@@ -119,7 +119,7 @@ axis_font = {'family' : 'normal',
     'weight' : 'bold',
         'size' : 14}
 fig, ax = plt.subplots(2, 5)
-fig.suptitle("Tangential Velocity - March 9th, 2011", fontsize = 16)
+#fig.suptitle("Tangential Velocity - March 9th, 2011", fontsize = 16)
 fig.text(0.5, 0.04, 'Radius (km)', ha= 'center', fontdict = axis_font)
 fig.text(0.04, 0.5, 'Height (km)', va='center', rotation='vertical', fontdict = axis_font)
 fig.tight_layout(pad = 2.0, h_pad = 1.2, w_pad = 0.1) #spacing between subplots
@@ -175,18 +175,25 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     x = np.arange(0,250*81,250)
     y = np.arange(0,250*81,250)
     xgrid,ygrid = np.meshgrid(x,y)
-    x_center_list = range(8000,12000,1000)
-    x_center = 10000.0
-    y_center = 10000.0
+    x_center = np.arange(5000,15001,500)
+    y_center = np.arange(5000,15001,500)
     radial_spacing = 50 # meters
     azimuthal_spacing = 6 # degress
     radius = np.arange(0,5001,radial_spacing)
     azimuth = np.arange(0,361,azimuthal_spacing)
     Vtan_total = np.zeros((numt,radius.shape[0],azimuth.shape[0])) #3D tangential velocity field (tilt, radius, az), we need to average in azimuth. => make 3D array into 2D array. az avg will then only vary in tilt and radius
     for i in range(numt):
-        xpol, ypol, Vtan, Vrad = polar_disk(x,y,x_center,y_center,radial_spacing,azimuthal_spacing,u_total[i],v_total[i])
-        
-        Vtan_total[i] = Vtan
+        Vtan_max = 0
+        for xi in x_center:
+            for yi in y_center:
+                xpol, ypol, Vtan, Vrad = polar_disk(x,y,xi,yi,radial_spacing,azimuthal_spacing,u_total[i],v_total[i])
+                if Vtan.mean(axis=1)[0:31].mean() > Vtan_max:
+                    Vtan_final=Vtan
+                    xi_final = xi
+                    yi_final = yi
+                    Vtan_max = Vtan.mean(axis=1)[0:31].mean()
+        Vtan_total[i] = Vtan_final
+        print np.hypot(xi_final-10000,yi_final-10000)
     # Max tangential velocity with height
     Vtan_max = Vtan_total.max(axis=1).max(axis=1)
 
@@ -219,7 +226,7 @@ for dirf in sorted(glob.glob(radar+'/'+day+'*')):
     r, hght = np.meshgrid(radius, npheight)
     #ax[index].contourf(r/1000., hght, Vtan_2D, extend = "both")
     #vtan = ax[index].contourf(r/1000., hght, Vtan_2D,  extend = "both")
-    C2D = ax[index].contourf(r, hght, C_2D, extend = "both")
+    C2D = ax[index].contourf(r/1000., hght, C_2D, extend = "both")
     ax[index].set_title(dirf[-6:-4] + ":" + dirf[-4:-2] + ":" + dirf[-2:] + " UTC", axis_title_font)
     index = index + 1
     height_index = height_index + 1
@@ -228,7 +235,7 @@ cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 #fig.colorbar(vtan, cax = cbar_ax)
 #fig.delaxes(ax[-1])
 #fig.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/Results/'+rad+'/vtan_%s.png'%day, dpi = 300)
-#plt.show()
+plt.show()
 plt.close()
 
 #print "Subplots: done"
@@ -330,7 +337,7 @@ for n in range(0, 7):
 dif = np.asarray(dif)
 print "Time Dif: done"
 
-'''#Time vs Radius Plots
+#Time vs Radius Plots
 for n in range(0, npheight.shape[0]):
     height_level = npheight[n]
     lev = n
@@ -340,8 +347,8 @@ for n in range(0, npheight.shape[0]):
     plt.xlabel("Minutes Past 0100 UTC")
     plt.ylabel("Radius (m)")
     plt.colorbar()
-    plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/Results/'+rad+'/vtanwrad_h%s.png'%(npheight[n]), dpi = 300)
-    #plt.show()
+    #plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/Results/'+rad+'/vtanwrad_h%s.png'%(npheight[n]), dpi = 300)
+    plt.show()
     plt.close()
 
 #circulation with radius at hght = n
@@ -350,14 +357,14 @@ for n in range(0, npheight.shape[0]):
     plt.xlabel("Minutes Past 0100 UTC")
     plt.ylabel("Radius (m)")
     plt.colorbar()
-    plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/Results/'+rad+'/circwrad_h%s.png'%(npheight[n]), dpi = 300)
-    #plt.show()
-    plt.close()'''
+    #plt.savefig('/Users/klwalsh/Undergrad/Senior/Capstone/Results/'+rad+'/circwrad_h%s.png'%(npheight[n]), dpi = 300)
+    plt.show()
+    plt.close()
 
-#print "Time v Radius: done"
+#print "Time v Height: done"
 
-#Time v Hght Plots
-for n in range(0, radius.shape[0]):
+#Time v Radius Plots
+'''for n in range(0, radius.shape[0]):
     rad_level = radius[n]/1000.
     lev = n
     c2 = c2d[:, :, lev]
@@ -371,7 +378,7 @@ for n in range(0, radius.shape[0]):
     #plt.show()
     plt.close()
 
-'''#tagential velocity
+#tagential velocity
     plt.contourf(d.T, h.T, vtan2d[:, :, lev], extend = "both")
     plt.title("Tangential Velocity at Radius %s (km)" %(radius[n]/1000.))
     plt.xlabel("Minutes Past 0100 UTC")
@@ -381,7 +388,7 @@ for n in range(0, radius.shape[0]):
     #plt.show()
     plt.close()
 
-print "Time v Hght: done"'''
+print "Time v Radius: done"'''
 
 '''####Rachel's circulation plots, with respect to making the heights for the contours and using the hght variable to use as your z axis rather than by tilt.  We need to figure out igure out how to make these for time height respect as well######
     #Tangential Velocity plots
